@@ -8,7 +8,6 @@ extends CharacterBody3D
 @export var Mouse_Sensitivity = 0.005
 
 
-
 @export var RunSpeed = 10
 @export var JUMP_VELOCITY = 4.5
 @export var Walk_speed = 5
@@ -40,8 +39,6 @@ func _unhandled_input(event):
 
 func _physics_process(delta): 
 	
-	var front_rot = $SpringPivot.global_transform.basis.get_euler().y
-	
 	if Input.is_action_pressed("Aim"):
 		Animtree.set("parameters/Aim_Anim/current_state", 0)
 	
@@ -54,7 +51,7 @@ func _physics_process(delta):
 	# Handle Jump.
 	if Input.is_action_just_pressed("ui_accept") and is_on_floor():
 		velocity.y = JUMP_VELOCITY
-	
+
 	# Get the input direction and handle the movement/deceleration.
 	# As good practice, you should replace UI actions with custom gameplay actions.
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
@@ -71,18 +68,9 @@ func _physics_process(delta):
 			SPEED = Walk_speed
 		velocity.x = direction.x * SPEED
 		velocity.z = direction.z * SPEED
-		
-		if int(Animtree.get("parameters/Aim_Anim/current_state")) == 1 :
-			Armature.rotation.y = lerp_angle(Armature.rotation.y, atan2(-velocity.x , -velocity.z), lerpValue)
-		else :
-			Armature.rotation.y = lerp_angle(Armature.rotation.y, front_rot, lerpValue)
-	
-	
+		Armature.rotation.y = lerp_angle(Armature.rotation.y, atan2(-velocity.x , -velocity.z), lerpValue)
 	else:
 		velocity.x = move_toward(velocity.x, 0, SPEED)
 		velocity.z = move_toward(velocity.z, 0, SPEED)
-	
-	strafe = lerp(strafe, strafe_dir, delta * lerpValue)
-	Animtree.set("parameters/Strafe/blend_position", Vector2(-strafe.x, strafe.z))
 
 	move_and_slide()

@@ -140,7 +140,7 @@ bones/106/rotation = Quaternion(0, 0, 0, 1)
 [node name="AnimationTree" parent="characters" index="2"]
 parameters/Aim_Anim/current_state = ""
 parameters/Aim_Anim/current_index = -1
-parameters/Strafe/blend_position = Vector2(0, 0)
+parameters/Strafe/blend_position = Vector2(-0.0666667, 0.414847)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 transform = Transform3D(380.459, 0, 0, 0, 0.301116, 0, 0, 0, 351.858, 0, 0, 0)
