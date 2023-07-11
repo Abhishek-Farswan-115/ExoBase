@@ -7,7 +7,6 @@ extends CharacterBody3D
 
 @export var Mouse_Sensitivity = 0.005
 
-
 @export var RunSpeed = 10
 @export var JUMP_VELOCITY = 4.5
 @export var Walk_speed = 5
@@ -38,12 +37,6 @@ func _unhandled_input(event):
 
 
 func _physics_process(delta): 
-	
-	if Input.is_action_pressed("Aim"):
-		Animtree.set("parameters/Aim_Anim/current_state", 0)
-	
-	else :
-		Animtree.set("parameters/Aim_Anim/current_state", 1)
 	# Add the gravity.
 	if not is_on_floor():
 		velocity.y -= gravity * delta
@@ -62,7 +55,7 @@ func _physics_process(delta):
 	direction = direction.rotated(Vector3.UP, lerpValue).normalized()
 	
 	if direction:
-		if Input.is_action_pressed("Sprint") && Animtree.get("parameters/Aim_Anim/current_state") == 1 :
+		if Input.is_action_pressed("Sprint") :
 			SPEED = RunSpeed
 		else:
 			SPEED = Walk_speed
