@@ -1,9 +1,11 @@
 extends CharacterBody3D
 
-@onready var springArmPivot = $SpringPivot
-@onready var SpringArm = $SpringPivot/SpringArm3D
+@onready var Camera = $CamNode
+@onready var springArmPivot = $CamNode/SpringPivot
+@onready var SpringArm = $CamNode/SpringPivot/SpringArm3D
 @onready var Armature = $Armature
 @onready var Animtree = $AnimationTree
+
 
 @export var Mouse_Sensitivity = 0.005
 
@@ -37,6 +39,12 @@ func _unhandled_input(event):
 
 
 func _physics_process(delta): 
+	var front_rot = springArmPivot.global_transform.basis.get_euler().y
+	
+	if Input.is_action_pressed("Aim"):
+		Animtree.set("parameters/Aim_Anim/current_index", 0)
+	else:
+		Animtree.set("parameters/Aim_Anim/current_index", 1)
 	# Add the gravity.
 	if not is_on_floor():
 		velocity.y -= gravity * delta
@@ -44,26 +52,42 @@ func _physics_process(delta):
 	# Handle Jump.
 	if Input.is_action_just_pressed("ui_accept") and is_on_floor():
 		velocity.y = JUMP_VELOCITY
+	
+	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	var direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y))
+	
 
 	# Get the input direction and handle the movement/deceleration.
 	# As good practice, you should replace UI actions with custom gameplay actions.
-	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	var direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y))
-	direction = direction.rotated(Vector3.UP, springArmPivot.rotation.y)
-	
-	strafe_dir = direction
-	direction = direction.rotated(Vector3.UP, lerpValue).normalized()
-	
-	if direction:
-		if Input.is_action_pressed("Sprint") :
-			SPEED = RunSpeed
-		else:
-			SPEED = Walk_speed
+	if Input.is_action_pressed("ui_up") || Input.is_action_pressed("ui_down") || Input.is_action_pressed("ui_left") || Input.is_action_pressed("ui_right"):
+
+		direction = direction.rotated(Vector3.UP, springArmPivot.rotation.y)
+		
+		strafe_dir = direction
+		direction = direction.rotated(Vector3.UP, lerpValue).normalized()
+		
+		if direction:
+			if Input.is_action_pressed("Sprint") && Animtree.get("parameters/Aim_Anim/current_index") == 1:
+				SPEED = RunSpeed
+			else:
+				SPEED = Walk_speed
 		velocity.x = direction.x * SPEED
 		velocity.z = direction.z * SPEED
-		Armature.rotation.y = lerp_angle(Armature.rotation.y, atan2(-velocity.x , -velocity.z), lerpValue)
+		
 	else:
 		velocity.x = move_toward(velocity.x, 0, SPEED)
 		velocity.z = move_toward(velocity.z, 0, SPEED)
+		strafe_dir = Vector3.ZERO
+		
+	if Animtree.get("parameters/Aim_Anim/current_index") == 0:
+		direction = springArmPivot.global_transform.basis.z
 
 	move_and_slide()
+	
+	if Animtree.get("parameters/Aim_Anim/current_index") == 1:
+		Armature.rotation.y = lerp_angle(Armature.rotation.y, atan2(-velocity.x , -velocity.z), lerpValue)
+	else :
+		Armature.rotation.y = lerp_angle(Armature.rotation.y, front_rot, lerpValue)
+	
+	strafe = lerp(strafe, strafe_dir, delta * 5 )
+	Animtree.set("parameters/Strafe/blend_position", Vector2(-strafe.x , strafe.z) )
