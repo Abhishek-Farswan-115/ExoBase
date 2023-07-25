@@ -23,6 +23,9 @@ func _unhandled_input(event):
 	if Input.is_action_just_pressed("ui_cancel"):
 		get_tree().quit()
 
+func _ready():
+	Anim_tree.set("active", true)
+	Anim_tree.set("parameters/Aim_Anim/transition_request", "Not_Aiming")
 
 func _physics_process(delta):
 	
@@ -50,24 +53,27 @@ func _physics_process(delta):
 		direction = direction.rotated(Vector3.UP, h_rot).normalized()
 
 		if Input.is_action_pressed("Sprint") && Anim_tree.get("parameters/Aim_Anim/current_state") == "Not_Aiming":
+			Anim_tree.set("parameters/Idle_Walk_Run/blend_amount", 0)
 			Movement_Speed = Run_speed
 		else:
 			Movement_Speed = Walk_speed
+			Anim_tree.set("parameters/Idle_Walk_Run/blend_amount", -1)
 	else:
 		Movement_Speed = 0
 		strafe_dir = Vector3.ZERO
 		
 		if Anim_tree.get("parameters/Aim_Anim/current_state") == "Aiming":
-			direction = $Camroot/H_rot.global_transform.basis.z 
+			direction = $Camroot/H_rot.global_transform.basis.z  
 		
 	velocity = lerp(velocity, direction * Movement_Speed, delta * acceleration )
-	
-	move_and_slide()
-	
+
 	if Anim_tree.get("parameters/Aim_Anim/current_state") == "Not_Aiming":
 		player.rotation.y = lerp_angle(player.rotation.y, atan2(direction.x, direction.z) - rotation.y, delta * angular_accel)
 	else :
-		player.rotation.y = lerp_angle(player.rotation.y, $Camroot/H_rot.rotation.y, delta * angular_accel) 
-	
+		player.rotation.y = $Camroot/H_rot.rotation.y + deg_to_rad(180) 
+		direction = $Camroot/H_rot.global_transform.basis.z 
+
 	strafe = lerp(strafe, strafe_dir, delta * acceleration)
 	Anim_tree.set("parameters/Strafe/blend_position", Vector2(-strafe.x, strafe.z))
+
+	move_and_slide()
