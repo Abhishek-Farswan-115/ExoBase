@@ -20,7 +20,7 @@ func _input(event):
 		camrot_h += -event.relative.x * cam_sensitivity
 		camrot_v += -event.relative.y * cam_sensitivity
 
-func _physics_process(delta):
+func _physics_process(_delta):
 	camrot_v = clamp(camrot_v, cam_v_min, cam_v_max)
 	
 	$H_rot.rotation_degrees.y = camrot_h
