@@ -1,93 +1,73 @@
 extends CharacterBody3D
 
-@onready var Camera = $CamNode
-@onready var springArmPivot = $CamNode/SpringPivot
-@onready var SpringArm = $CamNode/SpringPivot/SpringArm3D
-@onready var Armature = $Armature
-@onready var Animtree = $AnimationTree
+@onready var player = $Armature/Skeleton3D
+@onready var Anim_tree = $AnimationTree
 
 
-@export var Mouse_Sensitivity = 0.005
 
-@export var RunSpeed = 10
-@export var JUMP_VELOCITY = 4.5
-@export var Walk_speed = 5
+var Walk_speed = 5.0
+var Run_speed = 10
+var Movement_Speed = 0
+const JUMP_VELOCITY = 25
+var acceleration = 5
+var angular_accel = 7
 
-var lerpValue = 0.15
-
+var direction = Vector3.BACK
 var strafe_dir = Vector3.ZERO
 var strafe = Vector3.ZERO
 
-var SPEED = 0
-
-
 # Get the gravity from the project settings to be synced with RigidBody nodes.
-var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
-
-func _ready():
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-
+var gravity = 50
 
 func _unhandled_input(event):
 	if Input.is_action_just_pressed("ui_cancel"):
 		get_tree().quit()
-	
-	if event is InputEventMouseMotion:
-		springArmPivot.rotate_y(-event.relative.x * Mouse_Sensitivity)
-		SpringArm.rotate_x(-event.relative.y * Mouse_Sensitivity)
-		SpringArm.rotation.x = clamp(SpringArm.rotation.x, -PI/4, PI/4)
 
 
-func _physics_process(delta): 
-	var front_rot = springArmPivot.global_transform.basis.get_euler().y
+func _physics_process(delta):
 	
-	if Input.is_action_pressed("Aim"):
-		Animtree.set("parameters/Aim_Anim/current_index", 0)
-	else:
-		Animtree.set("parameters/Aim_Anim/current_index", 1)
-	# Add the gravity.
+	var h_rot = $Camroot/H_rot.global_transform.basis.get_euler().y
+	
 	if not is_on_floor():
 		velocity.y -= gravity * delta
-
+		
 	# Handle Jump.
 	if Input.is_action_just_pressed("ui_accept") and is_on_floor():
 		velocity.y = JUMP_VELOCITY
-	
-	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	var direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y))
-	
+		
 
-	# Get the input direction and handle the movement/deceleration.
+	if Input.is_action_pressed("Aim"):
+		Anim_tree.set("parameters/Aim_Anim/transition_request", "Aiming")
+	else :
+		Anim_tree.set("parameters/Aim_Anim/transition_request", "Not_Aiming")
 	# As good practice, you should replace UI actions with custom gameplay actions.
-	if Input.is_action_pressed("ui_up") || Input.is_action_pressed("ui_down") || Input.is_action_pressed("ui_left") || Input.is_action_pressed("ui_right"):
-
-		direction = direction.rotated(Vector3.UP, springArmPivot.rotation.y)
+	if Input.is_action_pressed("ui_left") ||  Input.is_action_pressed("ui_right") || Input.is_action_pressed("ui_up") || Input.is_action_pressed("ui_down"):
+		var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+		direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y))
 		
 		strafe_dir = direction
-		direction = direction.rotated(Vector3.UP, lerpValue).normalized()
 		
-		if direction:
-			if Input.is_action_pressed("Sprint") && Animtree.get("parameters/Aim_Anim/current_index") == 1:
-				SPEED = RunSpeed
-			else:
-				SPEED = Walk_speed
-		velocity.x = direction.x * SPEED
-		velocity.z = direction.z * SPEED
-		
+		direction = direction.rotated(Vector3.UP, h_rot).normalized()
+
+		if Input.is_action_pressed("Sprint") && Anim_tree.get("parameters/Aim_Anim/current_state") == "Not_Aiming":
+			Movement_Speed = Run_speed
+		else:
+			Movement_Speed = Walk_speed
 	else:
-		velocity.x = move_toward(velocity.x, 0, SPEED)
-		velocity.z = move_toward(velocity.z, 0, SPEED)
+		Movement_Speed = 0
 		strafe_dir = Vector3.ZERO
 		
-	if Animtree.get("parameters/Aim_Anim/current_index") == 0:
-		direction = springArmPivot.global_transform.basis.z
-
+		if Anim_tree.get("parameters/Aim_Anim/current_state") == "Aiming":
+			direction = $Camroot/H_rot.global_transform.basis.z 
+		
+	velocity = lerp(velocity, direction * Movement_Speed, delta * acceleration )
+	
 	move_and_slide()
 	
-	if Animtree.get("parameters/Aim_Anim/current_index") == 1:
-		Armature.rotation.y = lerp_angle(Armature.rotation.y, atan2(-velocity.x , -velocity.z), lerpValue)
+	if Anim_tree.get("parameters/Aim_Anim/current_state") == "Not_Aiming":
+		player.rotation.y = lerp_angle(player.rotation.y, atan2(direction.x, direction.z) - rotation.y, delta * angular_accel)
 	else :
-		Armature.rotation.y = lerp_angle(Armature.rotation.y, front_rot, lerpValue)
+		player.rotation.y = lerp_angle(player.rotation.y, $Camroot/H_rot.rotation.y, delta * angular_accel) 
 	
-	strafe = lerp(strafe, strafe_dir, delta * 5 )
-	Animtree.set("parameters/Strafe/blend_position", Vector2(-strafe.x , strafe.z) )
+	strafe = lerp(strafe, strafe_dir, delta * acceleration)
+	Anim_tree.set("parameters/Strafe/blend_position", Vector2(-strafe.x, strafe.z))
